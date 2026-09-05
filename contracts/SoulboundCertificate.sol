@@ -141,11 +141,7 @@ contract SoulboundCertificate is ERC721URIStorage, Ownable {
 
         uint256 tokenId = ++_nextTokenId;
 
-        // Mint NFT directly to student recipient
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, uri);
-
-        // Store persistent on-chain record
+        // Effects: Record certificate state and owner mapping prior to external interaction
         _certificates[tokenId] = CertificateRecord({
             tokenId: tokenId,
             recipient: to,
@@ -158,6 +154,10 @@ contract SoulboundCertificate is ERC721URIStorage, Ownable {
 
         // O(1) storage insertion for discovery
         _tokensOfOwner[to].push(tokenId);
+
+        // Interactions: Mint NFT directly to recipient and store tokenURI
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
 
         emit CertificateMinted(tokenId, to, msg.sender, uri, block.timestamp);
 

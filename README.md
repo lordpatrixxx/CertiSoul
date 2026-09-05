@@ -171,4 +171,4 @@ npx hardhat run scripts/test-e2e-flow.js
 ---
 
 ## 📄 License
-MIT License. Built for **HACKBLOX 2026** by Team CertiSoul.
+Distributed under the [MIT License](LICENSE). Built for **HACKBLOX 2026** by Team CertiSoul.
