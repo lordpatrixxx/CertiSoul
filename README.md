@@ -110,23 +110,31 @@ Simulate the complete lifecycle (Deploy $\rightarrow$ Authorize $\rightarrow$ Mi
 npx hardhat run scripts/test-e2e-flow.js
 ```
 
-### 4. Launch Local Development Network & dApp
-In Terminal 1 (Start local Hardhat node):
-```bash
-npx hardhat node
-```
+### 4. Zero-Friction Local Development Workflow (No Private Key Import Needed)
 
-In Terminal 2 (Deploy contract to local node):
-```bash
-npm run deploy:local
-```
-
-In Terminal 3 (Start the frontend):
-```bash
-cd frontend
-npm run dev
-```
-Open **`http://localhost:5173`** in your browser.
+1. **Start the local Hardhat node**:
+   ```bash
+   npx hardhat node
+   ```
+2. **Deploy the contract to localhost** (in another terminal):
+   ```bash
+   npm run deploy:local
+   ```
+3. **Start the frontend**:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+4. **Open the dApp in your browser**:
+   Navigate to **`http://localhost:5173`** (or the port displayed in your terminal).
+5. **Click "Connect Wallet"**:
+   - The dApp automatically requests connection via standard EIP-1193.
+   - It automatically requests switching to **Hardhat Localhost** (`31337`). If not present, it prompts MetaMask to add `0x7A69` automatically.
+   - Simply click **Approve / Switch** in the MetaMask popup.
+6. **Click "Enable Local Issuer"**:
+   - For local development, click the **"⚡ Enable Local Issuer"** button on the top status panel or Issuer tab.
+   - The local dev server authorizes your existing wallet on-chain without exposing or importing any private key!
+7. **Start testing & minting credentials immediately!**
 
 ---
 

@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "./components/Navbar";
+import DevStatusPanel from "./components/DevStatusPanel";
 import PublicVerify from "./components/PublicVerify";
 import IssuerDashboard from "./components/IssuerDashboard";
 import StudentVault from "./components/StudentVault";
 import {
   connectWallet,
-  getProvider,
-  checkIsOwner,
-  checkIsIssuer,
+  getAccountRole,
+  fetchLocalHealth,
   CONTRACT_ADDRESS,
-  EXPECTED_CHAIN_ID,
 } from "./services/web3";
-import { Award, ExternalLink, ShieldCheck, Heart } from "lucide-react";
+import { Award, ShieldCheck } from "lucide-react";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("verify");
@@ -20,10 +19,29 @@ export default function App() {
   const [networkName, setNetworkName] = useState("");
   const [isOwner, setIsOwner] = useState(false);
   const [isIssuer, setIsIssuer] = useState(false);
+  const [roleLabel, setRoleLabel] = useState("Student / Public");
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("");
   const [prefilledRevokeTokenId, setPrefilledRevokeTokenId] = useState("");
+  const [health, setHealth] = useState(null);
 
-  // Check if wallet is already connected or on accountsChanged
+  // Load local health metrics
+  const refreshHealth = async () => {
+    try {
+      const data = await fetchLocalHealth();
+      setHealth(data);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    refreshHealth();
+    const interval = setInterval(refreshHealth, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Listen for MetaMask account and chain changes
   useEffect(() => {
     if (window.ethereum) {
       window.ethereum
@@ -42,11 +60,13 @@ export default function App() {
           setAccount("");
           setIsOwner(false);
           setIsIssuer(false);
+          setRoleLabel("Not Connected");
         }
       });
 
-      window.ethereum.on("chainChanged", () => {
-        window.location.reload();
+      window.ethereum.on("chainChanged", (hexChainId) => {
+        setChainId(parseInt(hexChainId, 16));
+        refreshHealth();
       });
     }
   }, []);
@@ -54,15 +74,15 @@ export default function App() {
   const handleAccountLoad = async (userAccount) => {
     setAccount(userAccount);
     try {
-      const provider = getProvider();
-      const network = await provider.getNetwork();
-      setChainId(Number(network.chainId));
-      setNetworkName(network.name);
+      const currentChainHex = await window.ethereum.request({ method: "eth_chainId" });
+      setChainId(parseInt(currentChainHex, 16));
+      setNetworkName("Hardhat Localhost");
 
-      const ownerStatus = await checkIsOwner(userAccount);
-      const issuerStatus = await checkIsIssuer(userAccount);
-      setIsOwner(ownerStatus);
-      setIsIssuer(issuerStatus);
+      const roles = await getAccountRole(userAccount);
+      setIsOwner(roles.isOwner);
+      setIsIssuer(roles.isIssuer);
+      setRoleLabel(roles.roleLabel);
+      refreshHealth();
     } catch (err) {
       console.error("Error loading account roles:", err);
     }
@@ -70,27 +90,30 @@ export default function App() {
 
   const handleConnect = async () => {
     setIsConnecting(true);
+    setConnectionStatus("Connecting wallet...");
     try {
-      const data = await connectWallet();
+      const data = await connectWallet((status) => setConnectionStatus(status));
       setAccount(data.account);
       setChainId(data.chainId);
       setNetworkName(data.networkName);
-
-      const ownerStatus = await checkIsOwner(data.account);
-      const issuerStatus = await checkIsIssuer(data.account);
-      setIsOwner(ownerStatus);
-      setIsIssuer(issuerStatus);
+      setIsOwner(data.isOwner);
+      setIsIssuer(data.isIssuer);
+      setRoleLabel(data.roleLabel);
+      setConnectionStatus("Connected!");
+      setTimeout(() => setConnectionStatus(""), 2500);
+      refreshHealth();
     } catch (err) {
       console.error("Wallet connection error:", err);
       alert(err.message || "Failed to connect wallet.");
+      setConnectionStatus("");
     } finally {
       setIsConnecting(false);
     }
   };
 
-  const handleRefreshRoles = () => {
+  const handleRefreshRoles = async () => {
     if (account) {
-      handleAccountLoad(account);
+      await handleAccountLoad(account);
     }
   };
 
@@ -102,6 +125,16 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col justify-between">
       <div>
+        {/* Local Development Status Bar */}
+        <DevStatusPanel
+          health={health}
+          account={account}
+          isOwner={isOwner}
+          isIssuer={isIssuer}
+          roleLabel={roleLabel}
+          onRoleRefreshed={handleRefreshRoles}
+        />
+
         {/* Navbar */}
         <Navbar
           activeTab={activeTab}
@@ -111,8 +144,10 @@ export default function App() {
           chainId={chainId}
           isOwner={isOwner}
           isIssuer={isIssuer}
+          roleLabel={roleLabel}
           onConnect={handleConnect}
           isConnecting={isConnecting}
+          connectionStatus={connectionStatus}
         />
 
         {/* Main Content View */}

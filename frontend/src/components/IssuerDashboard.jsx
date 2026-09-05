@@ -18,6 +18,7 @@ import {
   revokeCertificateOnChain,
   authorizeIssuerOnChain,
   deauthorizeIssuerOnChain,
+  bootstrapLocalIssuer,
 } from "../services/web3";
 import { uploadCertificateMetadata, formatIpfsGatewayUrl } from "../services/ipfs";
 
@@ -70,6 +71,24 @@ export default function IssuerDashboard({
     error: "",
     successMsg: "",
   });
+
+  const [bootstrapping, setBootstrapping] = useState(false);
+  const [bootstrapNotice, setBootstrapNotice] = useState("");
+
+  const handleEnableLocalIssuer = async () => {
+    if (!account) return;
+    setBootstrapping(true);
+    setBootstrapNotice("Authorizing current wallet on local blockchain...");
+    try {
+      const res = await bootstrapLocalIssuer(account);
+      setBootstrapNotice(res.message || "Successfully authorized as local issuer!");
+      if (onRefreshRole) await onRefreshRole();
+    } catch (err) {
+      setBootstrapNotice(err.message || "Failed to authorize local issuer.");
+    } finally {
+      setBootstrapping(false);
+    }
+  };
 
   // Trigger celebration confetti
   const triggerConfetti = () => {
@@ -273,14 +292,41 @@ export default function IssuerDashboard({
 
       {/* Role Notice Banner */}
       {!isIssuer && (
-        <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/30 flex items-start gap-3 text-amber-200 text-sm">
-          <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-amber-300">Unauthorized Issuer Address</p>
-            <p className="text-xs text-amber-300/80 mt-1">
-              Your connected wallet ({account ? `${account.slice(0, 10)}...` : "None"}) is not yet whitelisted as an authorized issuer. You must be authorized by the contract owner ({isOwner ? "which is you!" : "contact the institution admin"}) to mint credentials.
-            </p>
+        <div className="p-5 rounded-2xl bg-purple-950/30 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-purple-200 text-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-white text-base">Enable Local Issuer Authorization</p>
+              <p className="text-xs text-purple-200/80 mt-1 max-w-xl">
+                Connected MetaMask wallet: <span className="font-mono text-cyan-300 font-semibold">{account || "No wallet connected"}</span>
+                <br />
+                In local development on chain 31337, click below to authorize this wallet on-chain automatically. No private key import into MetaMask is needed!
+              </p>
+              {bootstrapNotice && (
+                <p className="text-xs font-semibold text-emerald-400 mt-2">
+                  {bootstrapNotice}
+                </p>
+              )}
+            </div>
           </div>
+
+          <button
+            onClick={handleEnableLocalIssuer}
+            disabled={bootstrapping || !account}
+            className="btn-primary whitespace-nowrap text-xs py-2.5 px-4 flex-shrink-0 self-start sm:self-auto"
+          >
+            {bootstrapping ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Enabling Local Issuer...
+              </>
+            ) : (
+              <>
+                <KeyRound className="w-4 h-4 text-amber-300" />
+                Enable Local Issuer
+              </>
+            )}
+          </button>
         </div>
       )}
 

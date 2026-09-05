@@ -1,6 +1,5 @@
 import React from "react";
-import { ShieldCheck, Wallet, ExternalLink, Award, Search, Building2, User } from "lucide-react";
-import { CONTRACT_ADDRESS } from "../services/web3";
+import { Award, Search, Building2, User, Wallet, Loader2 } from "lucide-react";
 
 export default function Navbar({
   activeTab,
@@ -10,17 +9,19 @@ export default function Navbar({
   chainId,
   isOwner,
   isIssuer,
+  roleLabel,
   onConnect,
   isConnecting,
+  connectionStatus,
 }) {
   const truncate = (addr) =>
     addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#07090e]/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#07090e]/85 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Logo & Title */}
-        <div 
+        <div
           className="flex items-center gap-3 cursor-pointer select-none"
           onClick={() => setActiveTab("verify")}
         >
@@ -88,17 +89,17 @@ export default function Navbar({
         <div className="flex items-center gap-3">
           {/* Network Pill */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-white/5 text-xs text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-            <span>{chainId === 31337 ? "Localhost (31337)" : chainId === 11155111 ? "Sepolia" : `Chain: ${chainId || "Unknown"}`}</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>{chainId === 31337 ? "Hardhat Localhost (31337)" : `Chain: ${chainId || "Auto"}`}</span>
           </div>
 
           {/* Role Pill */}
           {account && (
             <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white/5 text-slate-300 border border-white/10">
               {isOwner ? (
-                <span className="text-amber-400">Admin/Owner</span>
+                <span className="text-amber-400">Admin</span>
               ) : isIssuer ? (
-                <span className="text-purple-400">Authorized Issuer</span>
+                <span className="text-emerald-400">Authorized Issuer</span>
               ) : (
                 <span className="text-slate-400">Student / Public</span>
               )}
@@ -115,10 +116,20 @@ export default function Navbar({
             <button
               onClick={onConnect}
               disabled={isConnecting}
-              className="btn-primary text-sm py-2 px-4"
+              className="btn-primary text-sm py-2 px-4 relative overflow-hidden"
+              title="Connect MetaMask and automatically switch/add Hardhat Localhost"
             >
-              <Wallet className="w-4 h-4" />
-              {isConnecting ? "Connecting..." : "Connect Wallet"}
+              {isConnecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="truncate max-w-[140px]">{connectionStatus || "Connecting..."}</span>
+                </>
+              ) : (
+                <>
+                  <Wallet className="w-4 h-4" />
+                  Connect Wallet
+                </>
+              )}
             </button>
           )}
         </div>

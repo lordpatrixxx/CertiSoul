@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite';
 import crypto from 'node:crypto';
 import dotenv from 'dotenv';
 import path from 'node:path';
+import fs from 'node:fs';
+import { ethers } from 'ethers';
 
 // Load .env from workspace root or frontend
 dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') });
@@ -11,18 +13,40 @@ dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
 
 const mockIpfsStore = new Map();
 
+// Local Hardhat constants for localhost development bootstrap
+const HARDHAT_LOCAL_RPC = 'http://127.0.0.1:8545';
+const HARDHAT_DEFAULT_ADMIN_KEY =
+  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+
 /**
- * Custom Vite middleware for secure server-side IPFS pinning.
- * Ensures PINATA_JWT is NEVER exposed to client browser code.
+ * Helper to read local contract deployment artifact
  */
-function ipfsServerPlugin() {
+function getLocalDeployment() {
+  const artifactPath = path.resolve(
+    import.meta.dirname,
+    'src/contracts/SoulboundCertificate.json'
+  );
+  if (fs.existsSync(artifactPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Custom Vite middleware for secure server-side IPFS pinning and local dev bootstrap.
+ */
+function devApiPlugin() {
   return {
-    name: 'ipfs-server-plugin',
+    name: 'dev-api-plugin',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url || '';
 
-        // Health check endpoint
+        // 1. IPFS Health check endpoint
         if (url === '/api/ipfs/health' && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');
           return res.end(
@@ -33,7 +57,7 @@ function ipfsServerPlugin() {
           );
         }
 
-        // Mock gateway resolver endpoint
+        // 2. IPFS Mock gateway resolver endpoint
         if (url.startsWith('/api/ipfs/meta/') && req.method === 'GET') {
           const cid = url.replace('/api/ipfs/meta/', '').split('?')[0];
           const cached = mockIpfsStore.get(cid);
@@ -43,7 +67,7 @@ function ipfsServerPlugin() {
           }
         }
 
-        // Pin JSON metadata endpoint
+        // 3. IPFS Pin JSON metadata endpoint
         if (url === '/api/ipfs/pin' && req.method === 'POST') {
           let body = '';
           req.on('data', (chunk) => {
@@ -56,7 +80,6 @@ function ipfsServerPlugin() {
               const pinataJwt = process.env.PINATA_JWT;
 
               if (pinataJwt) {
-                // Production flow: Server-side secure Pinata call
                 const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
                   method: 'POST',
                   headers: {
@@ -90,7 +113,6 @@ function ipfsServerPlugin() {
                   })
                 );
               } else {
-                // Development fallback: Deterministic offline mock CID
                 const contentStr = JSON.stringify(metadata);
                 const hash = crypto.createHash('sha256').update(contentStr).digest('hex').slice(0, 32);
                 const mockCid = `bafkrei${hash}`;
@@ -122,6 +144,157 @@ function ipfsServerPlugin() {
           return;
         }
 
+        // 4. Local Development Health check endpoint
+        if (url === '/api/local/health' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          const deployment = getLocalDeployment();
+
+          try {
+            const provider = new ethers.JsonRpcProvider(HARDHAT_LOCAL_RPC);
+            const network = await provider.getNetwork();
+            let contractOwner = null;
+            let totalCerts = null;
+
+            if (deployment && deployment.address && deployment.abi) {
+              try {
+                const contract = new ethers.Contract(deployment.address, deployment.abi, provider);
+                contractOwner = await contract.owner();
+                totalCerts = Number(await contract.totalCertificates());
+              } catch {
+                // Node might have restarted or contract not deployed
+              }
+            }
+
+            return res.end(
+              JSON.stringify({
+                hardhatRpcReachable: true,
+                rpcUrl: HARDHAT_LOCAL_RPC,
+                chainId: Number(network.chainId),
+                contractAddress: deployment?.address || null,
+                contractOwner,
+                totalCertificates: totalCerts,
+                pinataConfigured: Boolean(process.env.PINATA_JWT),
+              })
+            );
+          } catch (err) {
+            return res.end(
+              JSON.stringify({
+                hardhatRpcReachable: false,
+                rpcUrl: HARDHAT_LOCAL_RPC,
+                error: err.message,
+                contractAddress: deployment?.address || null,
+                pinataConfigured: Boolean(process.env.PINATA_JWT),
+              })
+            );
+          }
+        }
+
+        // 5. Local Development Issuer Bootstrap endpoint
+        if (url === '/api/local/bootstrap-issuer' && req.method === 'POST') {
+          // Security boundary: Only allow in development mode on localhost
+          if (process.env.NODE_ENV === 'production') {
+            res.statusCode = 403;
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(
+              JSON.stringify({
+                success: false,
+                error: 'Local bootstrap endpoint is strictly disabled in production builds.',
+              })
+            );
+          }
+
+          let body = '';
+          req.on('data', (chunk) => {
+            body += chunk;
+          });
+
+          req.on('end', async () => {
+            res.setHeader('Content-Type', 'application/json');
+            try {
+              const { address } = JSON.parse(body || '{}');
+
+              // Validate address
+              if (!address || !ethers.isAddress(address) || address === ethers.ZeroAddress) {
+                res.statusCode = 400;
+                return res.end(
+                  JSON.stringify({
+                    success: false,
+                    error: 'Invalid Ethereum wallet address provided.',
+                  })
+                );
+              }
+
+              const deployment = getLocalDeployment();
+              if (!deployment || !deployment.address || !deployment.abi) {
+                res.statusCode = 400;
+                return res.end(
+                  JSON.stringify({
+                    success: false,
+                    error: 'Contract deployment artifact not found. Please run npm run deploy:local first.',
+                  })
+                );
+              }
+
+              // Verify local Hardhat node is running and chain ID is 31337
+              const provider = new ethers.JsonRpcProvider(HARDHAT_LOCAL_RPC);
+              const network = await provider.getNetwork();
+              if (Number(network.chainId) !== 31337) {
+                res.statusCode = 400;
+                return res.end(
+                  JSON.stringify({
+                    success: false,
+                    error: `Local bootstrap only operates on chain 31337. Current RPC chain: ${network.chainId}`,
+                  })
+                );
+              }
+
+              // Connect using Hardhat local default admin account on server only
+              const adminWallet = new ethers.Wallet(HARDHAT_DEFAULT_ADMIN_KEY, provider);
+              const contract = new ethers.Contract(
+                deployment.address,
+                deployment.abi,
+                adminWallet
+              );
+
+              // Check if already authorized
+              const alreadyIssuer = await contract.isAuthorizedIssuer(address);
+              if (alreadyIssuer) {
+                return res.end(
+                  JSON.stringify({
+                    success: true,
+                    alreadyAuthorized: true,
+                    authorizedAddress: address,
+                    message: `Address ${address} is already an authorized issuer on-chain.`,
+                  })
+                );
+              }
+
+              // Call authorizeIssuer on-chain using server-side admin key
+              const tx = await contract.authorizeIssuer(address);
+              const receipt = await tx.wait();
+
+              return res.end(
+                JSON.stringify({
+                  success: true,
+                  alreadyAuthorized: false,
+                  authorizedAddress: address,
+                  txHash: receipt.hash,
+                  message: `Successfully authorized ${address} as an issuer on-chain!`,
+                })
+              );
+            } catch (err) {
+              res.statusCode = 500;
+              return res.end(
+                JSON.stringify({
+                  success: false,
+                  error: err.message || 'Failed to authorize local issuer.',
+                })
+              );
+            }
+          });
+          return;
+        }
+
         next();
       });
     },
@@ -130,7 +303,7 @@ function ipfsServerPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), ipfsServerPlugin()],
+  plugins: [react(), tailwindcss(), devApiPlugin()],
   server: {
     port: 5173,
   },
