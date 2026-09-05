@@ -12,6 +12,9 @@ import {
   ExternalLink,
   KeyRound,
   ShieldCheck,
+  Zap,
+  GraduationCap,
+  Bot,
 } from "lucide-react";
 import {
   mintCertificateOnChain,
@@ -75,10 +78,35 @@ export default function IssuerDashboard({
   const [bootstrapping, setBootstrapping] = useState(false);
   const [bootstrapNotice, setBootstrapNotice] = useState("");
 
+  // Preset fill helpers for quick 1-click demonstration
+  const fillPresetWeb3 = () => {
+    setRecipient(account || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+    setStudentName("Alex Rivera");
+    setCourseTitle("Full-Stack Web3 & Smart Contract Engineering");
+    setGrade("Summa Cum Laude (Top 1%)");
+    setIssuerName("HACKBLOX Academy of Technology");
+    setExtraNotes("Solidity, OpenZeppelin v5, Soulbound ERC-721, IPFS Pinning, EIP-1193");
+  };
+
+  const fillPresetAI = () => {
+    setRecipient(account || "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC");
+    setStudentName("Elena Rostova");
+    setCourseTitle("Advanced Deep Learning & Generative Models");
+    setGrade("Passed with Distinction");
+    setIssuerName("HACKBLOX Institute of AI");
+    setExtraNotes("Transformer Architecture, PyTorch, Multi-Agent Systems, Neural Alignment");
+  };
+
+  const fillMyWalletAsRecipient = () => {
+    if (account) {
+      setRecipient(account);
+    }
+  };
+
   const handleEnableLocalIssuer = async () => {
     if (!account) return;
     setBootstrapping(true);
-    setBootstrapNotice("Authorizing current wallet on local blockchain...");
+    setBootstrapNotice("");
     try {
       const res = await bootstrapLocalIssuer(account);
       setBootstrapNotice(res.message || "Successfully authorized as local issuer!");
@@ -90,11 +118,10 @@ export default function IssuerDashboard({
     }
   };
 
-  // Trigger celebration confetti
   const triggerConfetti = () => {
     confetti({
-      particleCount: 100,
-      spread: 70,
+      particleCount: 110,
+      spread: 75,
       origin: { y: 0.6 },
     });
   };
@@ -106,7 +133,7 @@ export default function IssuerDashboard({
       setMintStatus({
         loading: false,
         step: "error",
-        error: "Please fill in all required fields (Recipient, Name, Course).",
+        error: "Please complete all mandatory fields (Recipient Wallet, Student Name, Course Title).",
       });
       return;
     }
@@ -122,7 +149,7 @@ export default function IssuerDashboard({
     });
 
     try {
-      // Step 1: Upload Metadata to IPFS via secure server-side endpoint
+      // Step 1: Upload Metadata to IPFS via server-side endpoint
       const ipfsResult = await uploadCertificateMetadata({
         studentName,
         courseTitle,
@@ -156,7 +183,7 @@ export default function IssuerDashboard({
 
       triggerConfetti();
 
-      // Reset form fields
+      // Clear main fields
       setRecipient("");
       setStudentName("");
       setCourseTitle("");
@@ -165,7 +192,7 @@ export default function IssuerDashboard({
       setMintStatus({
         loading: false,
         step: "error",
-        error: err.message || "Failed to mint certificate. Check console for details.",
+        error: err.message || "Failed to mint certificate on-chain. Please check console.",
       });
     }
   };
@@ -205,7 +232,7 @@ export default function IssuerDashboard({
       if (err.message && err.message.includes("UnauthorizedRevocation")) {
         errMsg = "Unauthorized: Only the original issuer of this certificate or the contract admin can revoke it.";
       } else if (err.message && err.message.includes("CertificateAlreadyRevoked")) {
-        errMsg = `Certificate #${revokeTokenId} is already marked as revoked.`;
+        errMsg = `Certificate #${revokeTokenId} has already been marked as revoked.`;
       }
       setRevokeStatus({
         loading: false,
@@ -216,18 +243,18 @@ export default function IssuerDashboard({
     }
   };
 
-  // Handle Issuer Whitelist
+  // Handle Whitelist Authorize
   const handleAuthorize = async (addressToAuthorize) => {
     const addr = addressToAuthorize || targetIssuer;
     if (!addr) return;
 
     setWhitelistStatus({ loading: true, error: "", successMsg: "" });
     try {
-      const result = await authorizeIssuerOnChain(addr);
+      await authorizeIssuerOnChain(addr);
       setWhitelistStatus({
         loading: false,
         error: "",
-        successMsg: `Successfully authorized issuer: ${addr}`,
+        successMsg: `Successfully authorized issuer address: ${addr}`,
       });
       setTargetIssuer("");
       if (onRefreshRole) onRefreshRole();
@@ -240,16 +267,17 @@ export default function IssuerDashboard({
     }
   };
 
+  // Handle Whitelist De-authorize
   const handleDeauthorize = async () => {
     if (!targetIssuer) return;
 
     setWhitelistStatus({ loading: true, error: "", successMsg: "" });
     try {
-      const result = await deauthorizeIssuerOnChain(targetIssuer);
+      await deauthorizeIssuerOnChain(targetIssuer);
       setWhitelistStatus({
         loading: false,
         error: "",
-        successMsg: `Successfully de-authorized issuer: ${targetIssuer}`,
+        successMsg: `Successfully de-authorized issuer address: ${targetIssuer}`,
       });
       setTargetIssuer("");
       if (onRefreshRole) onRefreshRole();
@@ -264,25 +292,24 @@ export default function IssuerDashboard({
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
-      {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* 1. Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
             <Building2 className="w-7 h-7 text-purple-400" />
             Issuer Governance Portal
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Authorize universities, issue soulbound credentials, and manage on-chain revocations.
+            Issue soulbound NFT credentials, manage IPFS metadata, and enforce on-chain revocations.
           </p>
         </div>
 
-        {/* Quick self-authorize button for local testing */}
         {isOwner && !isIssuer && (
           <button
             onClick={() => handleAuthorize(account)}
             disabled={whitelistStatus.loading}
-            className="btn-secondary text-xs"
-            title="Authorize current admin wallet as an issuer"
+            className="btn-secondary h-9 text-xs self-start sm:self-auto"
+            title="Authorize your current admin wallet as an issuer"
           >
             <KeyRound className="w-3.5 h-3.5 text-amber-400" />
             Authorize My Address
@@ -290,20 +317,25 @@ export default function IssuerDashboard({
         )}
       </div>
 
-      {/* Role Notice Banner */}
+      {/* 2. 1-Click Authorization Banner (if connected wallet is not an authorized issuer) */}
       {!isIssuer && (
-        <div className="p-5 rounded-2xl bg-purple-950/30 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-purple-200 text-sm">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="glass-panel p-5 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0 mt-0.5">
+              <KeyRound className="w-5 h-5" />
+            </div>
             <div>
-              <p className="font-bold text-white text-base">Enable Local Issuer Authorization</p>
-              <p className="text-xs text-purple-200/80 mt-1 max-w-xl">
-                Connected MetaMask wallet: <span className="font-mono text-cyan-300 font-semibold">{account || "No wallet connected"}</span>
+              <p className="font-bold text-white text-sm sm:text-base">
+                Enable Local Issuer Authorization
+              </p>
+              <p className="text-xs text-slate-300 mt-0.5 max-w-xl leading-relaxed">
+                Wallet: <span className="font-mono text-cyan-300 font-semibold">{account || "No wallet connected"}</span>
                 <br />
-                In local development on chain 31337, click below to authorize this wallet on-chain automatically. No private key import into MetaMask is needed!
+                To mint certificates from this wallet, 1-click authorize it on your local Hardhat chain. Zero manual private key imports needed.
               </p>
               {bootstrapNotice && (
-                <p className="text-xs font-semibold text-emerald-400 mt-2">
+                <p className="text-xs font-semibold text-emerald-400 mt-2 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
                   {bootstrapNotice}
                 </p>
               )}
@@ -313,59 +345,59 @@ export default function IssuerDashboard({
           <button
             onClick={handleEnableLocalIssuer}
             disabled={bootstrapping || !account}
-            className="btn-primary whitespace-nowrap text-xs py-2.5 px-4 flex-shrink-0 self-start sm:self-auto"
+            className="btn-primary h-10 px-5 text-xs font-bold whitespace-nowrap flex-shrink-0 self-start sm:self-auto shadow-md shadow-purple-600/30"
           >
             {bootstrapping ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Enabling Local Issuer...
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Authorizing...</span>
               </>
             ) : (
               <>
-                <KeyRound className="w-4 h-4 text-amber-300" />
-                Enable Local Issuer
+                <Zap className="w-3.5 h-3.5 text-amber-300" />
+                <span>⚡ Enable Local Issuer</span>
               </>
             )}
           </button>
         </div>
       )}
 
-      {/* Sub-Navigation Tabs */}
+      {/* 3. Sub-Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-3">
         <button
           onClick={() => setActiveSubTab("mint")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
             activeSubTab === "mint"
-              ? "bg-purple-600/20 text-purple-300 border border-purple-500/40 shadow-sm"
+              ? "bg-purple-600/25 text-purple-200 border border-purple-500/40 shadow-sm"
               : "text-slate-400 hover:text-white"
           }`}
         >
-          <FilePlus className="w-4 h-4" />
+          <FilePlus className="w-4 h-4 text-purple-400" />
           Mint Credential
         </button>
 
         <button
           onClick={() => setActiveSubTab("revoke")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
             activeSubTab === "revoke"
-              ? "bg-red-600/20 text-red-300 border border-red-500/40 shadow-sm"
+              ? "bg-red-600/25 text-red-200 border border-red-500/40 shadow-sm"
               : "text-slate-400 hover:text-white"
           }`}
         >
-          <ShieldAlert className="w-4 h-4" />
+          <ShieldAlert className="w-4 h-4 text-red-400" />
           Revocation Manager
         </button>
 
         {isOwner && (
           <button
             onClick={() => setActiveSubTab("whitelist")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeSubTab === "whitelist"
-                ? "bg-amber-600/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                ? "bg-amber-600/25 text-amber-200 border border-amber-500/40 shadow-sm"
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            <Users className="w-4 h-4" />
+            <Users className="w-4 h-4 text-amber-400" />
             Whitelist Management
           </button>
         )}
@@ -373,15 +405,52 @@ export default function IssuerDashboard({
 
       {/* TAB 1: MINT CREDENTIAL */}
       {activeSubTab === "mint" && (
-        <div className="glass-panel p-6 sm:p-8 space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-400" />
-              Issue New Soulbound Credential
-            </h2>
-            <p className="text-xs text-slate-400">
-              Metadata will be pinned to IPFS and the non-transferable certificate will be permanently minted to the student's wallet.
-            </p>
+        <div className="glass-panel p-6 sm:p-8 space-y-6 border border-purple-500/20 shadow-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+                Issue New Soulbound Credential
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Metadata is pinned to IPFS and the non-transferable certificate is minted to the student's wallet.
+              </p>
+            </div>
+
+            {/* Quick Sample Autofill Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-slate-400 font-medium">1-Click Demos:</span>
+              <button
+                type="button"
+                onClick={fillPresetWeb3}
+                className="px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-purple-300 border border-white/10 text-xs font-semibold flex items-center gap-1 transition-colors"
+                title="Fill sample Web3 Engineering student details"
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                Web3 Eng.
+              </button>
+
+              <button
+                type="button"
+                onClick={fillPresetAI}
+                className="px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-cyan-300 border border-white/10 text-xs font-semibold flex items-center gap-1 transition-colors"
+                title="Fill sample AI student details"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                AI Tech
+              </button>
+
+              {account && (
+                <button
+                  type="button"
+                  onClick={fillMyWalletAsRecipient}
+                  className="px-2.5 py-1 rounded-md bg-purple-950/40 hover:bg-purple-900/40 text-purple-200 border border-purple-500/30 text-xs font-semibold transition-colors"
+                  title="Insert your connected wallet as the recipient student"
+                >
+                  My Address
+                </button>
+              )}
+            </div>
           </div>
 
           <form onSubmit={handleMint} className="space-y-4">
@@ -489,7 +558,7 @@ export default function IssuerDashboard({
                 <div className="flex items-center gap-2.5 text-sm font-semibold text-purple-300">
                   <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
                   {mintStatus.step === "ipfs"
-                    ? "Step 1/2: Uploading & Pinning Metadata to IPFS..."
+                    ? "Step 1/2: Cryptographically Pinning Metadata to IPFS..."
                     : "Step 2/2: Broadcasting Mint Transaction to Blockchain..."}
                 </div>
                 {mintStatus.cid && (
@@ -510,7 +579,7 @@ export default function IssuerDashboard({
 
             {/* Mint Success Modal/Box */}
             {mintStatus.step === "success" && (
-              <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 space-y-3">
+              <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 space-y-3 shadow-inner">
                 <div className="flex items-center gap-2 text-emerald-400 font-bold text-base">
                   <CheckCircle2 className="w-5 h-5" />
                   Soulbound Certificate Successfully Minted!
@@ -535,9 +604,9 @@ export default function IssuerDashboard({
                 <div className="pt-2">
                   <a
                     href={`/?verify=${mintStatus.tokenId}`}
-                    className="btn-primary text-xs py-2 px-4 inline-flex items-center gap-1.5"
+                    className="btn-primary text-xs h-9 px-4 inline-flex items-center gap-1.5"
                   >
-                    View in Public Verifier
+                    View in Public Verifier &rarr;
                   </a>
                 </div>
               </div>
@@ -546,7 +615,7 @@ export default function IssuerDashboard({
             <button
               type="submit"
               disabled={mintStatus.loading || !isIssuer}
-              className="btn-primary w-full py-3.5 justify-center text-sm font-bold shadow-lg shadow-purple-600/30"
+              className="btn-primary w-full h-12 justify-center text-sm font-bold shadow-lg shadow-purple-600/30"
             >
               {mintStatus.loading ? (
                 <>
@@ -566,24 +635,24 @@ export default function IssuerDashboard({
 
       {/* TAB 2: REVOCATION MANAGER */}
       {activeSubTab === "revoke" && (
-        <div className="glass-panel p-6 sm:p-8 space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className="glass-panel p-6 sm:p-8 space-y-6 border border-red-500/20 shadow-2xl">
+          <div className="space-y-1 border-b border-white/10 pb-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-red-400" />
               On-Chain Revocation Management
             </h2>
             <p className="text-xs text-slate-400">
-              Strictly callable ONLY by the original issuer of the certificate or the contract admin.
+              Callable strictly ONLY by the original issuing authority or the contract admin.
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-white/5 text-xs text-slate-300 space-y-1.5">
+          <div className="p-4 rounded-xl bg-slate-900/70 border border-white/5 text-xs text-slate-300 space-y-1.5">
             <div className="font-semibold text-slate-200 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-purple-400" />
               Official Soulbound Invariant Notice:
             </div>
-            <p>
-              Under Problem Statement 2 requirements, a revoked certificate is <strong>never burned</strong>. It remains permanently in the student recipient's wallet to preserve an immutable historical record, but its on-chain status is flagged as <strong>REVOKED</strong> with the exact timestamp and official reason string recorded.
+            <p className="leading-relaxed">
+              Under Problem Statement 2 requirements, a revoked certificate is <strong>never burned</strong>. It remains permanently in the student recipient's wallet to preserve an immutable historical record, while its on-chain status is flagged as <strong>REVOKED</strong> with the exact timestamp and official reason string recorded.
             </p>
           </div>
 
@@ -647,7 +716,7 @@ export default function IssuerDashboard({
             <button
               type="submit"
               disabled={revokeStatus.loading}
-              className="btn-danger w-full py-3.5 justify-center text-sm font-bold"
+              className="btn-danger w-full h-12 justify-center text-sm font-bold shadow-lg shadow-red-600/30"
             >
               {revokeStatus.loading ? (
                 <>
@@ -667,9 +736,9 @@ export default function IssuerDashboard({
 
       {/* TAB 3: WHITELIST MANAGEMENT (Owner only) */}
       {activeSubTab === "whitelist" && isOwner && (
-        <div className="glass-panel p-6 sm:p-8 space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className="glass-panel p-6 sm:p-8 space-y-6 border border-amber-500/20 shadow-2xl">
+          <div className="space-y-1 border-b border-white/10 pb-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Users className="w-5 h-5 text-amber-400" />
               Institutional Issuer Whitelist
             </h2>
@@ -711,7 +780,7 @@ export default function IssuerDashboard({
                 type="button"
                 onClick={() => handleAuthorize()}
                 disabled={whitelistStatus.loading || !targetIssuer}
-                className="btn-primary flex-1 py-3 justify-center text-sm"
+                className="btn-primary flex-1 h-11 justify-center text-sm"
               >
                 {whitelistStatus.loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -725,7 +794,7 @@ export default function IssuerDashboard({
                 type="button"
                 onClick={handleDeauthorize}
                 disabled={whitelistStatus.loading || !targetIssuer}
-                className="btn-secondary flex-1 py-3 justify-center text-sm hover:border-red-500/40 hover:text-red-300"
+                className="btn-secondary flex-1 h-11 justify-center text-sm hover:border-red-500/40 hover:text-red-300"
               >
                 {whitelistStatus.loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

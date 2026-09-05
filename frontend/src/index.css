@@ -1,77 +1,55 @@
 @import "tailwindcss";
 
-:root {
-  --font-main: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Cinzel', serif, Georgia;
-  --bg-primary: #07090e;
-  --bg-secondary: #0e131f;
-  --bg-card: rgba(17, 24, 39, 0.7);
-  --bg-card-hover: rgba(26, 36, 58, 0.8);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(139, 92, 246, 0.5);
-  
-  --color-brand: #8b5cf6;
-  --color-brand-light: #a78bfa;
-  --color-brand-glow: rgba(139, 92, 246, 0.25);
-  
-  --color-cyan: #06b6d4;
-  --color-cyan-glow: rgba(6, 182, 212, 0.25);
+@layer base {
+  :root {
+    --font-main: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Cinzel', serif, Georgia;
+    --font-mono: 'JetBrains Mono', monospace, ui-monospace;
 
-  --color-success: #10b981;
-  --color-success-bg: rgba(16, 185, 129, 0.12);
-  --color-success-border: rgba(16, 185, 129, 0.35);
+    --bg-dark: #07090e;
+    --bg-card: rgba(13, 18, 31, 0.75);
+    --bg-card-hover: rgba(22, 30, 50, 0.85);
+    
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --border-glass-hover: rgba(139, 92, 246, 0.4);
 
-  --color-danger: #ef4444;
-  --color-danger-bg: rgba(239, 68, 68, 0.12);
-  --color-danger-border: rgba(239, 68, 68, 0.35);
+    --primary-glow: rgba(99, 102, 241, 0.25);
+    --gold-glow: rgba(245, 158, 11, 0.25);
+  }
 
-  --color-gold: #f59e0b;
-  --color-gold-light: #fde68a;
-  --color-gold-glow: rgba(245, 158, 11, 0.25);
-
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  body {
+    font-family: var(--font-main);
+    background-color: var(--bg-dark);
+    color: #f8fafc;
+    min-height: 100vh;
+    line-height: 1.5;
+    background-image: 
+      radial-gradient(circle at 10% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+      radial-gradient(circle at 90% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(139, 92, 246, 0.08) 0%, transparent 55%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: var(--font-main);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  min-height: 100vh;
-  line-height: 1.5;
-  background-image: 
-    radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 25%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 50% 85%, rgba(124, 58, 237, 0.08) 0%, transparent 50%);
-  background-attachment: fixed;
-  overflow-x: hidden;
-}
-
-/* Glassmorphism primitives */
+/* Glassmorphism Panels */
 .glass-panel {
-  background: var(--bg-card);
+  background: rgba(13, 18, 31, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-  transition: all 0.2s ease-in-out;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel-hover:hover {
-  border-color: var(--border-focus);
-  box-shadow: 0 14px 40px -10px var(--color-brand-glow);
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 14px 40px -10px rgba(99, 102, 241, 0.25);
   transform: translateY(-2px);
 }
 
-/* Gradients & Highlights */
+/* Gradient Highlights */
 .gradient-text {
   background: linear-gradient(135deg, #c084fc 0%, #818cf8 50%, #38bdf8 100%);
   -webkit-background-clip: text;
@@ -84,45 +62,79 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+/* Input Fields - 46px Height, Symmetrical & Crisp */
+.input-field {
+  width: 100%;
+  height: 46px;
+  background: rgba(10, 14, 26, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0 16px;
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 0.925rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  background: rgba(15, 21, 38, 0.95);
+}
+
+.input-field::placeholder {
+  color: #64748b;
+}
+
+textarea.input-field {
+  height: auto;
+  padding: 12px 16px;
+}
+
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  height: 46px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 0 20px;
+  border-radius: 12px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.925rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 14px 0 rgba(124, 58, 237, 0.35);
+  box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.35);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px 0 rgba(124, 58, 237, 0.5);
-  filter: brightness(1.1);
+  box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.5);
+  filter: brightness(1.08);
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .btn-secondary {
+  height: 46px;
   background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
-  padding: 10px 18px;
-  border-radius: 10px;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 18px;
+  border-radius: 12px;
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.925rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: all 0.2s ease;
 }
@@ -130,19 +142,22 @@ body {
 .btn-secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .btn-danger {
+  height: 46px;
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 10px 18px;
-  border-radius: 10px;
+  padding: 0 18px;
+  border-radius: 12px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.925rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: all 0.2s ease;
 }
@@ -152,92 +167,72 @@ body {
   box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
 }
 
-/* Inputs */
-.input-field {
-  width: 100%;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  padding: 12px 16px;
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 0.95rem;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.input-field:focus {
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px var(--color-brand-glow);
-  background: rgba(20, 29, 52, 0.9);
-}
-
-.input-field::placeholder {
-  color: var(--text-muted);
-}
-
 /* Status Badges */
 .badge-valid {
-  background: var(--color-success-bg);
+  background: rgba(16, 185, 129, 0.12);
   color: #34d399;
-  border: 1px solid var(--color-success-border);
+  border: 1px solid rgba(16, 185, 129, 0.35);
   padding: 4px 12px;
   border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.775rem;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .badge-revoked {
-  background: var(--color-danger-bg);
+  background: rgba(239, 68, 68, 0.14);
   color: #f87171;
-  border: 1px solid var(--color-danger-border);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   padding: 4px 12px;
   border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.775rem;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .badge-soulbound {
-  background: rgba(139, 92, 246, 0.15);
-  color: #c084fc;
-  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
   padding: 4px 12px;
   border-radius: 9999px;
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-/* Ornate Academic Diploma Card */
+/* ==========================================================================
+   Luxury Academic Diploma Card
+   ========================================================================== */
 .diploma-card {
   position: relative;
-  background: linear-gradient(145deg, #0d121f 0%, #151d30 100%);
+  background: linear-gradient(145deg, #090e1a 0%, #12192b 100%);
   border: 2px solid rgba(245, 158, 11, 0.35);
-  border-radius: 20px;
-  padding: 36px;
+  border-radius: 24px;
+  padding: 40px;
   box-shadow: 
-    0 20px 40px -15px rgba(0, 0, 0, 0.7),
-    inset 0 0 0 1px rgba(254, 240, 138, 0.15);
+    0 24px 50px -15px rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px rgba(254, 240, 138, 0.12);
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .diploma-inner-border {
   border: 1px dashed rgba(245, 158, 11, 0.3);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 32px;
   position: relative;
+  background: radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.03) 0%, transparent 70%);
 }
 
 .diploma-watermark {
@@ -245,35 +240,102 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 16rem;
-  opacity: 0.03;
+  font-size: 14vw;
+  max-font-size: 180px;
+  opacity: 0.025;
   pointer-events: none;
   font-family: var(--font-serif);
   font-weight: 900;
+  letter-spacing: 0.1em;
+  user-select: none;
 }
 
-/* Animations */
-@keyframes pulseGlow {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
+/* Ornate Corner Accents */
+.corner-accent {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: #f59e0b;
+  opacity: 0.7;
+}
+.corner-tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; }
+.corner-tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; }
+.corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; }
+.corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; }
+
+/* Gold Seal Emblem */
+.gold-seal-emblem {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fef08a 0%, #f59e0b 55%, #b45309 100%);
+  border: 3px solid #fef08a;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.animate-glow {
-  animation: pulseGlow 4s ease-in-out infinite;
+.gold-seal-inner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1.5px dashed #78350f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #78350f;
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-align: center;
+  line-height: 1.1;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--bg-dark);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* Print Styles: When user prints or saves PDF, print pristine diploma card only */
+@media print {
+  header, footer, nav, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .diploma-card {
+    border: 2px solid #b45309 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+    padding: 24px !important;
+  }
+  .diploma-inner-border {
+    border: 1px dashed #b45309 !important;
+    background: #ffffff !important;
+  }
+  .diploma-card h2, .diploma-card h3 {
+    color: #000000 !important;
+  }
+  .diploma-watermark {
+    opacity: 0.05 !important;
+    color: #000000 !important;
+  }
 }

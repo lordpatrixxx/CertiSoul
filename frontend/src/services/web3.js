@@ -21,25 +21,39 @@ export const HARDHAT_CHAIN_PARAMS = {
 };
 
 /**
- * Get an ethers BrowserProvider from window.ethereum
+ * Get an ethers provider.
+ * For read-only calls, uses BrowserProvider if available or falls back to JsonRpcProvider (e.g. Hardhat RPC)
+ * so that public users without MetaMask can verify credentials effortlessly.
  */
+export function getReadOnlyProvider() {
+  if (typeof window !== "undefined" && window.ethereum) {
+    try {
+      return new ethers.BrowserProvider(window.ethereum);
+    } catch {
+      // fallback
+    }
+  }
+  return new ethers.JsonRpcProvider(HARDHAT_RPC_URL);
+}
+
 export function getProvider() {
-  if (!window.ethereum) {
-    throw new Error("No Web3 wallet detected. Please install MetaMask to use this application.");
+  if (typeof window === "undefined" || !window.ethereum) {
+    throw new Error("No Web3 wallet detected. Please install MetaMask to interact with write transactions.");
   }
   return new ethers.BrowserProvider(window.ethereum);
 }
 
 /**
- * Get a contract instance connected to signer (for write) or provider (for read)
+ * Get a contract instance connected to signer (for write) or read-only provider (for queries)
  */
 export async function getContract(needSigner = false) {
-  const provider = getProvider();
   if (needSigner) {
+    const provider = getProvider();
     const signer = await provider.getSigner();
     return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
   }
-  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+  const readProvider = getReadOnlyProvider();
+  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
 }
 
 /**
