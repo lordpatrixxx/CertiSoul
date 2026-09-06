@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { User, Award, ShieldCheck, Loader2, Sparkles, PlusCircle } from "lucide-react";
 import { fetchCertificateById, fetchTokensByOwner } from "../services/web3";
 import { fetchMetadataFromIpfs } from "../services/ipfs";
@@ -9,16 +9,7 @@ export default function StudentVault({ connectedAccount, onConnect, onNavigateTo
   const [loading, setLoading] = useState(false);
   const [metadataMap, setMetadataMap] = useState({});
 
-  useEffect(() => {
-    if (connectedAccount) {
-      loadStudentCertificates();
-    } else {
-      setTokens([]);
-      setMetadataMap({});
-    }
-  }, [connectedAccount]);
-
-  const loadStudentCertificates = async () => {
+  const loadStudentCertificates = useCallback(async () => {
     if (!connectedAccount) return;
     setLoading(true);
     try {
@@ -47,7 +38,16 @@ export default function StudentVault({ connectedAccount, onConnect, onNavigateTo
     } finally {
       setLoading(false);
     }
-  };
+  }, [connectedAccount]);
+
+  useEffect(() => {
+    if (connectedAccount) {
+      loadStudentCertificates();
+    } else {
+      setTokens([]);
+      setMetadataMap({});
+    }
+  }, [connectedAccount, loadStudentCertificates]);
 
   if (!connectedAccount) {
     return (

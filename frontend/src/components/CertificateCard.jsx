@@ -10,7 +10,6 @@ import {
   QrCode,
   Award,
   Calendar,
-  Lock,
   X,
   FileCheck2,
 } from "lucide-react";

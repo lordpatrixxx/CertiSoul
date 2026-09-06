@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Navbar from "./components/Navbar";
 import PublicVerify from "./components/PublicVerify";
 import IssuerDashboard from "./components/IssuerDashboard";
@@ -24,21 +24,47 @@ export default function App() {
   const [prefilledRevokeTokenId, setPrefilledRevokeTokenId] = useState("");
   const [health, setHealth] = useState(null);
 
-  // Load local health metrics
-  const refreshHealth = async () => {
+  // Load local health metrics – defined first so the polling useEffect can reference it safely.
+  const refreshHealth = useCallback(async () => {
     try {
       const data = await fetchLocalHealth();
       setHealth(data);
     } catch {
       // ignore
     }
-  };
+  }, []);
+
+  const handleAccountLoad = useCallback(async (userAccount) => {
+    setAccount(userAccount);
+    try {
+      const currentChainHex = await window.ethereum.request({ method: "eth_chainId" });
+      const currentDec = parseInt(currentChainHex, 16);
+      setChainId(currentDec);
+      const netName =
+        currentDec === 11155111
+          ? "Sepolia Testnet"
+          : currentDec === 31337
+          ? "Hardhat Localhost"
+          : currentDec === 1
+          ? "Ethereum Mainnet"
+          : `Chain ${currentDec}`;
+      setNetworkName(netName);
+
+      const roles = await getAccountRole(userAccount);
+      setIsOwner(roles.isOwner);
+      setIsIssuer(roles.isIssuer);
+      setRoleLabel(roles.roleLabel);
+      refreshHealth();
+    } catch (err) {
+      console.error("Error loading account roles:", err);
+    }
+  }, [refreshHealth]);
 
   useEffect(() => {
     refreshHealth();
     const interval = setInterval(refreshHealth, 8000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshHealth]);
 
   // Listen for MetaMask account and chain changes
   useEffect(() => {
@@ -68,33 +94,7 @@ export default function App() {
         refreshHealth();
       });
     }
-  }, []);
-
-  const handleAccountLoad = async (userAccount) => {
-    setAccount(userAccount);
-    try {
-      const currentChainHex = await window.ethereum.request({ method: "eth_chainId" });
-      const currentDec = parseInt(currentChainHex, 16);
-      setChainId(currentDec);
-      const netName =
-        currentDec === 11155111
-          ? "Sepolia Testnet"
-          : currentDec === 31337
-          ? "Hardhat Localhost"
-          : currentDec === 1
-          ? "Ethereum Mainnet"
-          : `Chain ${currentDec}`;
-      setNetworkName(netName);
-
-      const roles = await getAccountRole(userAccount);
-      setIsOwner(roles.isOwner);
-      setIsIssuer(roles.isIssuer);
-      setRoleLabel(roles.roleLabel);
-      refreshHealth();
-    } catch (err) {
-      console.error("Error loading account roles:", err);
-    }
-  };
+  }, [handleAccountLoad, refreshHealth]);
 
   const handleConnect = async () => {
     setIsConnecting(true);

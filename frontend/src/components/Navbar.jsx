@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
   Info,
   X,
 } from "lucide-react";
@@ -40,7 +39,10 @@ export default function Navbar({
   const truncate = (addr) =>
     addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
 
-  const isLocalhost = chainId === 31337 || !chainId;
+  // Only enable the local-dev issuer shortcut in non-production builds.
+  // On Vercel (production), import.meta.env.DEV is false, so this is always false,
+  // which prevents the "Enable Issuer" button from showing and hitting the 403 API.
+  const isLocalhost = import.meta.env.DEV && (chainId === 31337 || !chainId);
 
   const handleEnableLocalIssuer = async () => {
     if (!account) return;

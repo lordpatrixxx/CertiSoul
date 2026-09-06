@@ -1,14 +1,12 @@
 import React, { useState } from "react";
 import {
   Activity,
-  ShieldCheck,
   AlertCircle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   KeyRound,
   Loader2,
-  Server,
   Cloud,
 } from "lucide-react";
 import { bootstrapLocalIssuer } from "../services/web3";
@@ -46,7 +44,7 @@ export default function DevStatusPanel({
     }
   };
 
-  const isLocalhost = health?.chainId === 31337 || !health?.chainId;
+  const isLocalhost = import.meta.env.DEV && (health?.chainId === 31337 || !health?.chainId);
 
   return (
     <div className="border-b border-purple-500/20 bg-purple-950/20 backdrop-blur-md">
