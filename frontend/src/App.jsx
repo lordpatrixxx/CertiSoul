@@ -9,7 +9,7 @@ import {
   fetchLocalHealth,
   CONTRACT_ADDRESS,
 } from "./services/web3";
-import { Award, ShieldCheck, Heart } from "lucide-react";
+import { Award, ShieldCheck } from "lucide-react";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("verify");
@@ -74,8 +74,17 @@ export default function App() {
     setAccount(userAccount);
     try {
       const currentChainHex = await window.ethereum.request({ method: "eth_chainId" });
-      setChainId(parseInt(currentChainHex, 16));
-      setNetworkName("Hardhat Localhost");
+      const currentDec = parseInt(currentChainHex, 16);
+      setChainId(currentDec);
+      const netName =
+        currentDec === 11155111
+          ? "Sepolia Testnet"
+          : currentDec === 31337
+          ? "Hardhat Localhost"
+          : currentDec === 1
+          ? "Ethereum Mainnet"
+          : `Chain ${currentDec}`;
+      setNetworkName(netName);
 
       const roles = await getAccountRole(userAccount);
       setIsOwner(roles.isOwner);

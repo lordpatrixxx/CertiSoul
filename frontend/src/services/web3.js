@@ -1,28 +1,53 @@
 import { ethers } from "ethers";
 import contractArtifact from "../contracts/SoulboundCertificate.json";
 
-export const CONTRACT_ADDRESS = contractArtifact.address;
+export const CONTRACT_ADDRESS =
+  import.meta.env.VITE_CONTRACT_ADDRESS || contractArtifact.address;
 export const CONTRACT_ABI = contractArtifact.abi;
-export const EXPECTED_CHAIN_ID = contractArtifact.chainId;
+export const EXPECTED_CHAIN_ID = import.meta.env.VITE_CHAIN_ID
+  ? Number(import.meta.env.VITE_CHAIN_ID)
+  : contractArtifact.chainId;
 
 export const HARDHAT_CHAIN_ID_HEX = "0x7A69"; // 31337 in hex
 export const HARDHAT_CHAIN_ID_DEC = 31337;
-export const HARDHAT_RPC_URL = "http://127.0.0.1:8545";
+export const SEPOLIA_CHAIN_ID_HEX = "0xaa36a7"; // 11155111 in hex
+export const SEPOLIA_CHAIN_ID_DEC = 11155111;
 
-export const HARDHAT_CHAIN_PARAMS = {
-  chainId: HARDHAT_CHAIN_ID_HEX,
-  chainName: "Hardhat Localhost",
-  rpcUrls: [HARDHAT_RPC_URL],
-  nativeCurrency: {
-    name: "Ether",
-    symbol: "ETH",
-    decimals: 18,
+export const HARDHAT_RPC_URL =
+  import.meta.env.VITE_RPC_URL ||
+  (EXPECTED_CHAIN_ID === SEPOLIA_CHAIN_ID_DEC
+    ? "https://rpc.sepolia.org"
+    : "http://127.0.0.1:8545");
+
+export const NETWORK_PARAMS = {
+  31337: {
+    chainId: HARDHAT_CHAIN_ID_HEX,
+    chainName: "Hardhat Localhost",
+    rpcUrls: [HARDHAT_RPC_URL],
+    nativeCurrency: {
+      name: "Ether",
+      symbol: "ETH",
+      decimals: 18,
+    },
+  },
+  11155111: {
+    chainId: SEPOLIA_CHAIN_ID_HEX,
+    chainName: "Sepolia Testnet",
+    rpcUrls: [import.meta.env.VITE_RPC_URL || "https://rpc.sepolia.org"],
+    nativeCurrency: {
+      name: "Sepolia ETH",
+      symbol: "ETH",
+      decimals: 18,
+    },
+    blockExplorerUrls: ["https://sepolia.etherscan.io"],
   },
 };
 
+export const HARDHAT_CHAIN_PARAMS = NETWORK_PARAMS[31337];
+
 /**
  * Get an ethers provider.
- * For read-only calls, uses BrowserProvider if available or falls back to JsonRpcProvider (e.g. Hardhat RPC)
+ * For read-only calls, uses BrowserProvider if available or falls back to JsonRpcProvider (e.g. Hardhat or Sepolia RPC)
  * so that public users without MetaMask can verify credentials effortlessly.
  */
 export function getReadOnlyProvider() {
@@ -66,40 +91,51 @@ export async function ensureHardhatNetwork(onStatusUpdate) {
     throw new Error("No Web3 wallet detected. Please install MetaMask.");
   }
 
+  const targetChainIdDec = EXPECTED_CHAIN_ID;
+  const targetChainIdHex =
+    targetChainIdDec === SEPOLIA_CHAIN_ID_DEC
+      ? SEPOLIA_CHAIN_ID_HEX
+      : "0x" + targetChainIdDec.toString(16);
+  const targetParams = NETWORK_PARAMS[targetChainIdDec] || {
+    chainId: targetChainIdHex,
+    chainName: `Network ${targetChainIdDec}`,
+    rpcUrls: [HARDHAT_RPC_URL],
+  };
+
   const currentChainHex = await window.ethereum.request({ method: "eth_chainId" });
-  if (currentChainHex.toLowerCase() === HARDHAT_CHAIN_ID_HEX.toLowerCase()) {
+  if (currentChainHex.toLowerCase() === targetChainIdHex.toLowerCase()) {
     return true;
   }
 
-  if (onStatusUpdate) onStatusUpdate("Switching to Hardhat Localhost (Chain ID: 31337)...");
+  if (onStatusUpdate) onStatusUpdate(`Switching to ${targetParams.chainName} (Chain ID: ${targetChainIdDec})...`);
 
   try {
-    // 1. Attempt to switch to chain 31337
+    // 1. Attempt to switch to target chain
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: HARDHAT_CHAIN_ID_HEX }],
+      params: [{ chainId: targetChainIdHex }],
     });
     return true;
   } catch (switchError) {
     // Error 4902: Unrecognized chain, needs to be added
     if (switchError.code === 4902 || switchError?.data?.originalError?.code === 4902) {
-      if (onStatusUpdate) onStatusUpdate("Adding Hardhat Localhost network to MetaMask...");
+      if (onStatusUpdate) onStatusUpdate(`Adding ${targetParams.chainName} to MetaMask...`);
       try {
         await window.ethereum.request({
           method: "wallet_addEthereumChain",
-          params: [HARDHAT_CHAIN_PARAMS],
+          params: [targetParams],
         });
         return true;
       } catch (addError) {
         if (addError.code === 4001) {
-          throw new Error("You cancelled adding the Hardhat Localhost network in MetaMask.");
+          throw new Error(`You cancelled adding ${targetParams.chainName} in MetaMask.`);
         }
-        throw new Error(`Failed to add Hardhat network: ${addError.message}`);
+        throw new Error(`Failed to add network: ${addError.message}`);
       }
     }
 
     if (switchError.code === 4001) {
-      throw new Error("You cancelled switching to Hardhat Localhost in MetaMask.");
+      throw new Error(`You cancelled switching to ${targetParams.chainName} in MetaMask.`);
     }
     throw switchError;
   }
@@ -129,10 +165,18 @@ export async function connectWallet(onStatusUpdate) {
 
   if (onStatusUpdate) onStatusUpdate("Connected!");
 
+  const targetChainIdDec = EXPECTED_CHAIN_ID;
+  const networkName =
+    targetChainIdDec === SEPOLIA_CHAIN_ID_DEC
+      ? "Sepolia Testnet"
+      : targetChainIdDec === 31337
+      ? "Hardhat Localhost"
+      : `Chain ${targetChainIdDec}`;
+
   return {
     account: userAccount,
-    chainId: HARDHAT_CHAIN_ID_DEC,
-    networkName: "Hardhat Localhost",
+    chainId: targetChainIdDec,
+    networkName,
     ...roles,
   };
 }
